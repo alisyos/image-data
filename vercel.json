@@ -1,0 +1,14 @@
+{
+  "name": "visual-learning-system",
+  "version": 2,
+  "build": {
+    "env": {
+      "OPENAI_API_KEY": "@openai-api-key"
+    }
+  },
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "runtime": "nodejs18.x"
+    }
+  }
+}
