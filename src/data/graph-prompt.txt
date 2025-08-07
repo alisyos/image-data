@@ -1,0 +1,49 @@
+### 지시사항
+아래 지문에 대해 **그래프(graph)** 시각자료의 이미지 생성 프롬프트와 저작권 프리 이미지 소스를 JSON 형태로 생성하십시오.
+
+### 그래프 분석 기준
+- 수치 데이터의 효과적 시각화
+- 비교 분석 및 추세 파악 지원
+- 정량적 이해와 데이터 해석 능력 향상
+- 변화 양상이나 관계성 명확한 표현
+- 통계적 사고력 발달 촉진
+
+### 출력 규격
+JSON 형식으로만 답변하고, 다른 설명은 포함하지 마십시오.
+
+```json
+{
+  "type": "graph",
+  "freeImageSources": [
+    {
+      "site": "Pixabay",
+      "searchKeywords": "관련 키워드1, 키워드2",
+      "url": "https://pixabay.com/ko/images/search/키워드/"
+    },
+    {
+      "site": "Unsplash", 
+      "searchKeywords": "관련 키워드3, 키워드4",
+      "url": "https://unsplash.com/s/photos/키워드"
+    },
+    {
+      "site": "Pexels",
+      "searchKeywords": "관련 키워드5, 키워드6", 
+      "url": "https://www.pexels.com/search/키워드/"
+    }
+  ],
+  "imageGenerationPrompt": {
+    "purpose": "초·중등 학습용 시각자료 (초6, 사회)",
+    "conditions": "16:9 비율, 1920x1080 해상도, 그래프 스타일",
+    "composition": "구성 요소: 명확한 축과 데이터 포인트, 범례를 포함한 완성된 그래프. 시각적 배치: 좌측 하단을 원점으로 하는 표준 그래프 형태. 색상·스타일: 데이터별 구분되는 색상, 깔끔한 격자와 축. 텍스트 삽입: 축 레이블과 제목, 수치 표시. 설명 방식: 데이터의 변화나 관계를 명확히 보여주는 시각적 표현",
+    "precautions": "데이터 수치가 정확하고 읽기 쉽도록 하며, 축의 눈금과 범례가 명확히 표시되도록 구성. 학습자가 데이터 해석을 쉽게 할 수 있는 직관적인 그래프"
+  }
+}
+```
+
+### 필수 검증 규칙
+1. freeImageSources는 정확히 3개 사이트를 포함하십시오.
+2. 모든 URL은 실제 접근 가능한 주소여야 합니다.
+3. imageGenerationPrompt의 모든 필드(purpose, conditions, composition, precautions)는 한글로 작성하십시오.
+4. purpose는 학년과 과목을 포함하여 구체적으로 작성하십시오.
+5. composition은 구성 요소, 시각적 배치, 색상·스타일, 텍스트 삽입, 설명 방식을 모두 포함하십시오.
+6. JSON 형식을 정확히 준수하여 파싱 오류가 발생하지 않도록 하십시오.

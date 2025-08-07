@@ -50,11 +50,18 @@ export interface PromptHistoryEntry {
  */
 export async function getCurrentPrompt(): Promise<string> {
   try {
+    console.log('[getCurrentPrompt] Google Sheets에서 프롬프트 읽기 시작:', new Date().toISOString());
+    
     const sheetsClient = await initializeSheetsClient();
     
     if (!GOOGLE_SHEETS_SPREADSHEET_ID) {
+      console.log('[getCurrentPrompt] GOOGLE_SHEETS_SPREADSHEET_ID가 설정되지 않음 - 기본 프롬프트 반환');
       throw new Error('GOOGLE_SHEETS_SPREADSHEET_ID가 설정되지 않았습니다.');
     }
+
+    // 캐싱 방지를 위한 타임스탬프 추가
+    const timestamp = Date.now();
+    console.log('[getCurrentPrompt] API 호출 시작:', timestamp);
 
     const response = await sheetsClient.spreadsheets.values.get({
       spreadsheetId: GOOGLE_SHEETS_SPREADSHEET_ID,
@@ -62,14 +69,30 @@ export async function getCurrentPrompt(): Promise<string> {
     });
 
     const values = response.data.values;
+    console.log('[getCurrentPrompt] API 응답 받음:', {
+      hasValues: !!values,
+      valuesLength: values?.length || 0,
+      hasPromptContent: !!(values && values.length > 0 && values[0][1]),
+      timestamp: new Date().toISOString()
+    });
+
     if (!values || values.length === 0 || !values[0][1]) {
+      console.log('[getCurrentPrompt] 유효한 프롬프트 없음 - 기본 프롬프트 반환');
       // 프롬프트가 없으면 기본 프롬프트 반환
       return getDefaultPrompt();
     }
 
-    return values[0][1]; // prompt_content
+    const promptContent = values[0][1];
+    console.log('[getCurrentPrompt] 프롬프트 성공적으로 읽음:', {
+      contentLength: promptContent.length,
+      contentPreview: promptContent.substring(0, 100) + '...',
+      timestamp: new Date().toISOString()
+    });
+
+    return promptContent; // prompt_content
   } catch (error) {
-    console.error('Google Sheets에서 프롬프트 읽기 실패:', error);
+    console.error('[getCurrentPrompt] Google Sheets에서 프롬프트 읽기 실패:', error);
+    console.log('[getCurrentPrompt] 오류로 인해 기본 프롬프트 반환:', new Date().toISOString());
     // 오류 시 기본 프롬프트 반환
     return getDefaultPrompt();
   }

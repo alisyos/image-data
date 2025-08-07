@@ -1,9 +1,9 @@
 import OpenAI from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
-import { FormData, AnalysisResult } from '@/types';
-import { createPrompt } from '@/utils/prompt';
+import { FormData, Phase1Result } from '@/types';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
-// 캐싱 방지를 위한 route segment config
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -11,9 +11,31 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+function getPhase1Prompt(): string {
+  const promptPath = join(process.cwd(), 'src/data/phase1-prompt.txt');
+  return readFileSync(promptPath, 'utf-8');
+}
+
+function createPhase1Prompt(data: FormData): string {
+  const systemPrompt = getPhase1Prompt();
+  
+  return `${systemPrompt}
+
+### 입력 정보
+- 과목: ${data.subject || '-'}
+- 학년: ${data.grade || '-'}
+- 영역: ${data.area || '-'}
+- 주제: ${data.topic || '-'}
+- 핵심어: ${data.keywords || '-'}
+- 지문 유형: ${data.textType || '-'}
+
+### 지문 내용
+${data.content}`;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    console.log('[Analyze API] 분석 요청 시작:', new Date().toISOString());
+    console.log('[Analyze Phase1 API] 1차 분석 요청 시작:', new Date().toISOString());
     
     const data: FormData = await request.json();
     
@@ -24,9 +46,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[Analyze API] 프롬프트 생성 시작');
-    const prompt = await createPrompt(data);
-    console.log('[Analyze API] 프롬프트 생성 완료, OpenAI API 호출 시작');
+    console.log('[Analyze Phase1 API] 프롬프트 생성 시작');
+    const prompt = createPhase1Prompt(data);
+    console.log('[Analyze Phase1 API] 프롬프트 생성 완료, OpenAI API 호출 시작');
     
     const response = await openai.chat.completions.create({
       model: 'gpt-4.1',
@@ -37,10 +59,10 @@ export async function POST(request: NextRequest) {
         }
       ],
       temperature: 0.7,
-      max_tokens: 10000,
+      max_tokens: 3000,
     });
 
-    console.log('[Analyze API] OpenAI API 응답 받음');
+    console.log('[Analyze Phase1 API] OpenAI API 응답 받음');
     
     const content = response.choices[0]?.message?.content;
     
@@ -48,7 +70,6 @@ export async function POST(request: NextRequest) {
       throw new Error('OpenAI로부터 응답을 받지 못했습니다.');
     }
 
-    // 응답이 잘렸는지 확인
     if (response.choices[0]?.finish_reason === 'length') {
       return NextResponse.json(
         { error: 'AI 응답이 너무 길어 잘렸습니다. 더 간단한 지문으로 다시 시도해주세요.' },
@@ -56,13 +77,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // JSON 형식 검증 및 정리
     let cleanContent = content.trim();
     
-    // JSON이 완전하지 않은 경우 처리
+    // 마크다운 코드블록 제거
+    if (cleanContent.startsWith('```json')) {
+      cleanContent = cleanContent.replace(/^```json\s*/, '');
+    }
+    if (cleanContent.endsWith('```')) {
+      cleanContent = cleanContent.replace(/\s*```$/, '');
+    }
+    
+    cleanContent = cleanContent.trim();
+    
     if (!cleanContent.endsWith('}')) {
       console.warn('JSON이 완전하지 않아 수정을 시도합니다.');
-      // 마지막 완전한 객체까지만 파싱 시도
       const lastCompleteObjectIndex = cleanContent.lastIndexOf('}}');
       if (lastCompleteObjectIndex > 0) {
         cleanContent = cleanContent.substring(0, lastCompleteObjectIndex + 2);
@@ -70,30 +98,26 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const result: AnalysisResult = JSON.parse(cleanContent);
+      const result: Phase1Result = JSON.parse(cleanContent);
       
-      // 기본 검증
-      if (!result.visualTypeSuitability || !result.visualRecommendations) {
+      if (!result.visualTypeSuitability || !result.reasonSummary) {
         throw new Error('응답 형식이 올바르지 않습니다.');
       }
 
-      if (result.visualRecommendations.length !== 5) {
-        throw new Error('시각자료 추천은 정확히 5개여야 합니다.');
+      if (result.reasonSummary.length !== 5) {
+        throw new Error('추천 이유는 정확히 5개여야 합니다.');
       }
 
-      // 적합도 합계 검증 및 자동 조정
       const totalPercent = Object.values(result.visualTypeSuitability).reduce((sum, val) => sum + val, 0);
       if (totalPercent !== 100) {
         console.warn(`적합도 합계가 100%가 아닙니다: ${totalPercent}% - 자동 조정합니다.`);
         
-        // 비율에 맞게 자동 조정
         const factor = 100 / totalPercent;
         Object.keys(result.visualTypeSuitability).forEach(key => {
           result.visualTypeSuitability[key as keyof typeof result.visualTypeSuitability] = 
             Math.round(result.visualTypeSuitability[key as keyof typeof result.visualTypeSuitability] * factor);
         });
         
-        // 반올림 오차 조정
         const newTotal = Object.values(result.visualTypeSuitability).reduce((sum, val) => sum + val, 0);
         if (newTotal !== 100) {
           const diff = 100 - newTotal;
@@ -102,9 +126,8 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      console.log('[Analyze API] 분석 완료:', new Date().toISOString());
+      console.log('[Analyze Phase1 API] 1차 분석 완료:', new Date().toISOString());
       
-      // 캐싱 방지 헤더 추가
       const response = NextResponse.json(result);
       response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       response.headers.set('Pragma', 'no-cache');
@@ -115,7 +138,6 @@ export async function POST(request: NextRequest) {
       console.error('JSON 파싱 오류:', parseError);
       console.error('정리된 응답:', cleanContent.substring(0, 1000) + '...');
       
-      // 더 자세한 에러 정보 제공
       let errorMessage = 'AI 응답을 파싱하는 중 오류가 발생했습니다.';
       if (parseError instanceof SyntaxError) {
         if (parseError.message.includes('Unterminated string')) {

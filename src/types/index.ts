@@ -12,14 +12,32 @@ export interface FreeImageSource {
   url: string;
 }
 
+export interface ImageGenerationPrompt {
+  purpose: string;
+  conditions: string;
+  composition: string;
+  precautions: string;
+}
+
 export interface VisualRecommendation {
   type: 'illustration' | 'photo' | 'flowchart' | 'graph' | 'table';
   suitabilityPercent: number;
-  reason: string;
-  composition: string;
-  implementation: string;
+  reason?: string;
+  composition?: string;
+  implementation?: string;
   freeImageSources: FreeImageSource[];
-  aiPrompt: string;
+  aiPrompt?: string;
+  imageGenerationPrompt?: ImageGenerationPrompt;
+}
+
+export interface ReasonSummary {
+  type: 'illustration' | 'photo' | 'flowchart' | 'graph' | 'table';
+  reason: string;
+}
+
+export interface Phase1Result {
+  visualTypeSuitability: VisualTypeSuitability;
+  reasonSummary: ReasonSummary[];
 }
 
 export interface AnalysisResult {
@@ -35,4 +53,9 @@ export interface FormData {
   keywords?: string;
   textType?: string;
   content: string;
+}
+
+export interface DetailRequest {
+  visualType: 'illustration' | 'photo' | 'flowchart' | 'graph' | 'table';
+  formData: FormData;
 }
