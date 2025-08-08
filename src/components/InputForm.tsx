@@ -16,7 +16,8 @@ export default function InputForm({ onSubmit, loading }: InputFormProps) {
     topic: '',
     keywords: '',
     textType: '',
-    content: ''
+    content: '',
+    contentSetId: ''
   });
   
   const [isDragOver, setIsDragOver] = useState(false);
@@ -58,6 +59,9 @@ export default function InputForm({ onSubmit, loading }: InputFormProps) {
         i++;
       } else if ((line === '지문 유형' || line === '지문유형') && i + 1 < lines.length) {
         result.textType = lines[i + 1];
+        i++;
+      } else if ((line === '콘텐츠 세트 ID' || line === '콘텐츠세트ID') && i + 1 < lines.length) {
+        result.contentSetId = lines[i + 1];
         i++;
       } else if (line === '지문' && i + 1 < lines.length) {
         const remainingLines = lines.slice(i + 1);
@@ -264,6 +268,19 @@ export default function InputForm({ onSubmit, loading }: InputFormProps) {
           value={formData.textType}
           onChange={(e) => handleChange('textType', e.target.value)}
           placeholder="설명문, 논설문, 기사 등"
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          콘텐츠 세트 ID
+        </label>
+        <input
+          type="text"
+          value={formData.contentSetId}
+          onChange={(e) => handleChange('contentSetId', e.target.value)}
+          placeholder="콘텐츠 세트 식별자 (선택사항)"
           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>

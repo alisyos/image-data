@@ -5,6 +5,7 @@ import InputForm from '@/components/InputForm';
 import Phase1Display from '@/components/Phase1Display';
 import DetailDisplay from '@/components/DetailDisplay';
 import { FormData, Phase1Result, VisualRecommendation } from '@/types';
+import { downloadAsTXT } from '@/utils/download';
 
 export default function Home() {
   const [phase1Result, setPhase1Result] = useState<Phase1Result | null>(null);
@@ -148,6 +149,18 @@ export default function Home() {
     setFormData(null);
   };
 
+  const handleDownload = () => {
+    if (!formData) return;
+    
+    const downloadData = {
+      inputData: formData,
+      phase1Result: phase1Result || undefined,
+      selectedDetails
+    };
+
+    downloadAsTXT(downloadData);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* 헤더 */}
@@ -158,6 +171,15 @@ export default function Home() {
               초·중등 어휘학습 지문 시각자료 추천 시스템
             </h1>
             <div className="flex items-center space-x-3">
+              {formData && (
+                <button
+                  onClick={handleDownload}
+                  className="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  title="분석 결과를 텍스트 파일로 다운로드"
+                >
+                  다운로드
+                </button>
+              )}
               <a
                 href="/admin"
                 className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"

@@ -53,6 +53,7 @@ export interface FormData {
   keywords?: string;
   textType?: string;
   content: string;
+  contentSetId?: string;
 }
 
 export interface DetailRequest {
